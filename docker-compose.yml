@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  base: &base
+    # Usar la imagen Enterprise Edition pre-construida de Docker Hub
+    image: chatwoot/chatwoot:latest-ee
+    env_file: .env 
+    volumes:
+      - storage_data:/app/storage
+
+  rails:
+    <<: *base
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+    # Este script se encarga de esperar la DB y migrar
+    entrypoint: docker/entrypoints/rails.sh
+    # Comando para arrancar el servidor web
+    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    restart: always
+
+  sidekiq:
+    <<: *base
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+    # Comando para arrancar el worker de fondo
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    restart: always
+
+volumes:
+  storage_data:
