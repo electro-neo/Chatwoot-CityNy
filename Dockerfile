@@ -14,6 +14,9 @@ RUN bundle install --jobs $(nproc) --without development test
 # Copia TODO EL CÓDIGO FUENTE (¡EL PARCHE EE!)
 COPY . /app/
 
+# CRÍTICO: Elimina la tarea de desarrollo que falla en producción.
+RUN rm -f lib/tasks/auto_annotate_models.rake
+
 # Ejecuta la instalación (se activará EE gracias al parche)
 RUN bundle exec rails chatwoot:install
 
