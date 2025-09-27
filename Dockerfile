@@ -14,14 +14,23 @@ RUN bundle install --jobs $(nproc) --without development test
 # Copia TODO EL CÓDIGO FUENTE (¡EL PARCHE EE!)
 COPY . /app/
 
+# INSTALA PNPM y los paquetes de NODE.JS para la precompilación de Vite/Assets
+RUN curl -fsSL https://get.pnpm.io/install.sh | sh -
+ENV PATH="/root/.local/share/pnpm:$PATH"
+
+# Instala las dependencias de JavaScript
+RUN pnpm install --frozen-lockfile
+
 # CRÍTICO: Elimina la tarea de desarrollo que falla en producción.
 RUN rm -f lib/tasks/auto_annotate_models.rake
 
-# Ejecuta la instalación (se activará EE gracias al parche)
+# Comentamos el comando que falla.
 # RUN bundle exec rake chatwoot:install
 
 # Precompila los assets
 ENV RAILS_ENV=production
+# CLAVE TEMPORAL: Requerida para la precompilación en modo producción
+ENV SECRET_KEY_BASE="3vH1inzqOBSapdpqZLYa2xC/61T3TI8mVfvsdCTUCVeC9tImx0Qzd1tW8NyhoaIGkYvPCuf+LrwD4nkDb2EnVQ=="
 RUN bundle exec rake assets:precompile
 
 # 2. ETAPA DE EJECUCIÓN: Imagen ligera final
