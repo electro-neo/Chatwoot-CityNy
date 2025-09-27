@@ -1,34 +1,33 @@
 version: '3'
 
 services:
-  base: &base
-    # Usar la imagen Enterprise Edition pre-construida de Docker Hub
-    image: chatwoot/chatwoot:latest-ee
-    env_file: .env 
-    volumes:
-      - storage_data:/app/storage
-
+  # Servicio principal de Rails (servidor web)
   rails:
-    <<: *base
-    environment:
-      - NODE_ENV=production
-      - RAILS_ENV=production
-      - INSTALLATION_ENV=docker
-    # Este script se encarga de esperar la DB y migrar
-    entrypoint: docker/entrypoints/rails.sh
-    # Comando para arrancar el servidor web
-    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+    # IMAGEN CON TU USUARIO
+    image: electroneo/chatwoot-ee-patch:latest
     restart: always
+    environment:
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - INSTALLATION_ENV=docker
+      # Estas variables serán inyectadas en Railway
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+      - PORT=3000
+    ports:
+      - "3000"
 
+  # Servicio de Sidekiq (trabajos asíncronos)
   sidekiq:
-    <<: *base
-    environment:
-      - NODE_ENV=production
-      - RAILS_ENV=production
-      - INSTALLATION_ENV=docker
-    # Comando para arrancar el worker de fondo
-    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+    # MISMA IMAGEN
+    image: electroneo/chatwoot-ee-patch:latest
     restart: always
+    environment:
+      - RAILS_ENV=production
+      - NODE_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL}
+      - SECRET_KEY_BASE=${SECRET_KEY_BASE}
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
 
 volumes:
   storage_data:
