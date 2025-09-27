@@ -18,7 +18,7 @@ COPY . /app/
 RUN rm -f lib/tasks/auto_annotate_models.rake
 
 # Ejecuta la instalación (se activará EE gracias al parche)
-RUN bundle exec rails chatwoot:install
+RUN bundle exec rake chatwoot:install
 
 # Precompila los assets
 ENV RAILS_ENV=production
