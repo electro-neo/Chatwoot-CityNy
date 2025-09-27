@@ -11,10 +11,12 @@ module ChatwootApp
     100_000
   end
 
+  # --- [PARCHE N° 1: ACTIVAR ESTADO ENTERPRISE] ---
   def self.enterprise?
-    return if ENV.fetch('DISABLE_ENTERPRISE', false)
+    # Antes: return if ENV.fetch('DISABLE_ENTERPRISE', false)
+    # Antes: @enterprise ||= root.join('enterprise').exist?
 
-    @enterprise ||= root.join('enterprise').exist?
+    true # <--- FUERZA A LA APLICACIÓN A ESTAR EN MODO ENTERPRISE
   end
 
   def self.chatwoot_cloud?
@@ -29,14 +31,12 @@ module ChatwootApp
     ENV.fetch('HELPCENTER_URL', nil) || ENV.fetch('FRONTEND_URL', nil)
   end
 
+  # --- [PARCHE N° 2: ACTIVAR EXTENSIONES ENTERPRISE] ---
   def self.extensions
-    if custom?
-      %w[enterprise custom]
-    elsif enterprise?
-      %w[enterprise]
-    else
-      %w[]
-    end
+    # Antes: if custom? %w[enterprise custom] ...
+
+    # El motor de inyección del inicializador necesita esto:
+    %w[enterprise] # <--- FUERZA LA INYECCIÓN DE MÓDULOS DE CÓDIGO EE
   end
 
   def self.advanced_search_allowed?
