@@ -2,42 +2,48 @@
 FROM ruby:3.4.4-slim AS base
 WORKDIR /app
 
-# Instala dependencias del sistema necesarias
+# Instala dependencias del sistema base (incluyendo curl para instalar Node)
 RUN apt-get update -qq && apt-get install -yq --no-install-recommends \
-    build-essential libpq-dev git nodejs yarn curl bash \
+    build-essential libpq-dev git curl bash \
     && rm -rf /var/lib/apt/lists/*
 
-# Copia dependencias de Ruby y las instala
-COPY Gemfile Gemfile.lock /app/
-RUN bundle install --jobs $(nproc) --without development test
+# Instala la versión de Node.js que el proyecto espera (23.x)
+RUN curl -fsSL https://deb.nodesource.com/setup_23.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs
 
-# Copia TODO EL CÓDIGO FUENTE (¡EL PARCHE EE!)
-COPY . /app/
-
-# INSTALA PNPM y los paquetes de NODE.JS para la precompilación de Vite/Assets
-# Instalación de PNPM via NPM para evitar errores de shell
+# Ahora usamos el `npm` oficial para instalar `pnpm` globalmente
 RUN npm install -g pnpm
 
-# Instala las dependencias de JavaScript
+# --- El resto del flujo es como lo teníamos optimizado ---
+
+# Copia archivos de dependencias de Ruby y JS
+COPY Gemfile Gemfile.lock package.json pnpm-lock.yaml /app/
+
+# Instala dependencias de Ruby
+RUN bundle install --jobs $(nproc) --without development test
+
+# Instala dependencias de JavaScript usando pnpm
 RUN pnpm install --frozen-lockfile
 
-# CRÍTICO: Elimina la tarea de desarrollo que falla en producción.
+# Copia el resto del código fuente
+COPY . .
+
+# CRÍTICO: Elimina la tarea de desarrollo
 RUN rm -f lib/tasks/auto_annotate_models.rake
 
-# Comentamos el comando que falla.
-# RUN bundle exec rake chatwoot:install
+# ***** NUEVA LÍNEA AQUÍ *****
+# Inserta la configuración para evitar la inicialización de la DB durante la precompilación
+RUN sed -i '/config.eager_load = true/a \  config.assets.initialize_on_precompile = false' config/environments/production.rb
 
-# Precompila los assets
+# Precompila los assets para producción
 ENV RAILS_ENV=production
-# CLAVE TEMPORAL: Requerida para la precompilación en modo producción
-ENV SECRET_KEY_BASE="3vH1inzqOBSapdpqZLYa2xC/61T3TI8mVfvsdCTUCVeC9tImx0Qzd1tW8NyhoaIGkYvPCuf+LrwD4nkDb2EnVQ=="
-RUN bundle exec rake assets:precompile
+RUN SECRET_KEY_BASE_DUMMY=1 bundle exec rake assets:precompile
 
 # 2. ETAPA DE EJECUCIÓN: Imagen ligera final
 FROM ruby:3.4.4-slim
 WORKDIR /app
 
-# Copia las Gemas y el código ya compilado de la etapa base
+# Copia las dependencias y el código compilado de la etapa anterior
 COPY --from=base /usr/local/bundle /usr/local/bundle
 COPY --from=base /app /app
 
@@ -45,4 +51,6 @@ COPY --from=base /app /app
 RUN chmod +x docker/entrypoints/rails.sh
 
 ENTRYPOINT ["./docker/entrypoints/rails.sh"]
+
+# El CMD por defecto es iniciar el servidor Rails
 CMD ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
