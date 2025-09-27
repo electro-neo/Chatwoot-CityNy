@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Instala dependencias del sistema necesarias
 RUN apt-get update -qq && apt-get install -yq --no-install-recommends \
-    build-essential libpq-dev git nodejs yarn curl \
+    build-essential libpq-dev git nodejs yarn curl bash \
     && rm -rf /var/lib/apt/lists/*
 
 # Copia dependencias de Ruby y las instala
@@ -15,8 +15,8 @@ RUN bundle install --jobs $(nproc) --without development test
 COPY . /app/
 
 # INSTALA PNPM y los paquetes de NODE.JS para la precompilación de Vite/Assets
-RUN curl -fsSL https://get.pnpm.io/install.sh | sh -
-ENV PATH="/root/.local/share/pnpm:$PATH"
+# Instalación de PNPM via NPM para evitar errores de shell
+RUN npm install -g pnpm
 
 # Instala las dependencias de JavaScript
 RUN pnpm install --frozen-lockfile
