@@ -1,5 +1,5 @@
 # 1. ETAPA DE CONSTRUCCIÓN: Compila el código fuente parcheado
-FROM ruby:3.2.4-slim AS base
+FROM ruby:3.4.4-slim AS base
 WORKDIR /app
 
 # Instala dependencias del sistema necesarias
@@ -22,7 +22,7 @@ ENV RAILS_ENV=production
 RUN bundle exec rake assets:precompile
 
 # 2. ETAPA DE EJECUCIÓN: Imagen ligera final
-FROM ruby:3.2.4-slim
+FROM ruby:3.4.4-slim
 WORKDIR /app
 
 # Copia las Gemas y el código ya compilado de la etapa base
